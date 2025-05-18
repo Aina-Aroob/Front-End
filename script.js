@@ -3,96 +3,86 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageInput = document.getElementById('image');
     const resultDiv = document.getElementById('result');
     const imagePreview = document.getElementById('imagePreview');
-    const submitBtn = document.getElementById('submitBtn');
+    const detectButton = document.getElementById('detectButton');
 
     // Backend API URL
     const API_URL = 'https://web-production-e7b0.up.railway.app';
 
-    // Initially disable the submit button
-    submitBtn.disabled = true;
-
-    // Preview image before upload
+    // Handle file selection
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
-                showResult('Please select a valid image file (JPEG, PNG)', 'alert-danger');
+                alert('Please select a valid image file (JPEG, PNG)');
                 imageInput.value = '';
-                imagePreview.classList.add('d-none');
-                submitBtn.disabled = true;
                 return;
             }
 
+            // Preview the image
             const reader = new FileReader();
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
                 imagePreview.classList.remove('d-none');
-                submitBtn.disabled = false;
-                showResult('Image ready - Click "Detect Glasses" to process', 'alert-info');
             };
             reader.readAsDataURL(file);
         } else {
             imagePreview.classList.add('d-none');
-            submitBtn.disabled = true;
-            showResult('Please select an image', 'alert-warning');
         }
     });
 
     // Handle form submission
-    form.addEventListener('submit', handleSubmit);
-
-    async function handleSubmit(e) {
-        e.preventDefault();
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault(); // Prevent default form submission
 
         const file = imageInput.files[0];
         if (!file) {
-            showResult('Please select an image first!', 'alert-danger');
+            alert('Please select an image first');
             return;
         }
 
-        // Disable button and show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+        // Show loading state
+        detectButton.disabled = true;
+        detectButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
         try {
+            // Create form data
             const formData = new FormData();
             formData.append('image', file);
 
-            showResult('Processing image...', 'alert-info');
-
+            // Make API request
             const response = await fetch(`${API_URL}/detect`, {
                 method: 'POST',
                 body: formData
             });
 
+            // Check if request was successful
             if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
+            // Parse response
+            const result = await response.json();
             
-            if (data.prediction) {
-                showResult(data.prediction, 'alert-success');
+            // Show result
+            if (result.prediction) {
+                showResult(result.prediction, 'success');
             } else {
-                showResult('Could not determine if glasses are present', 'alert-warning');
+                showResult('Could not detect glasses in the image', 'warning');
             }
-
         } catch (error) {
             console.error('Error:', error);
-            showResult('Error processing image. Please try again.', 'alert-danger');
+            showResult('Error processing image. Please try again.', 'danger');
         } finally {
             // Reset button state
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Detect Glasses';
+            detectButton.disabled = false;
+            detectButton.innerHTML = 'Detect Glasses';
         }
-    }
+    });
 
-    function showResult(message, className = 'alert-info') {
+    function showResult(message, type) {
         resultDiv.textContent = message;
-        resultDiv.className = `alert ${className}`;
+        resultDiv.className = `alert alert-${type}`;
         resultDiv.classList.remove('d-none');
+        resultDiv.scrollIntoView({ behavior: 'smooth' });
     }
-
-    // Initial message
-    showResult('Please select an image to begin', 'alert-info');
 }); 
