@@ -2,14 +2,18 @@
     "version": 2,
     "builds": [
         {
-            "src": "*.html",
+            "src": "**/*",
             "use": "@vercel/static"
         }
     ],
     "routes": [
         {
             "src": "/detect",
-            "dest": "https://your-backend-url.com/detect"
+            "dest": "https://web-production-e7b0.up.railway.app/detect"
+        },
+        {
+            "src": "/health",
+            "dest": "https://web-production-e7b0.up.railway.app/health"
         },
         {
             "src": "/(.*)",
