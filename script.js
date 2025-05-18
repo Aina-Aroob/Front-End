@@ -5,21 +5,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreview = document.getElementById('imagePreview');
     const submitButton = form.querySelector('button[type="submit"]');
     
-    // Backend API URL
+    // Backend API URL - make sure there's no trailing slash
     const API_URL = 'https://web-production-e7b0.up.railway.app';
 
     // Check if backend is available
     async function checkBackendHealth() {
         try {
+            showResult('Connecting to server...', 'alert-info');
             const response = await fetch(`${API_URL}/health`);
             const data = await response.json();
-            console.log('Backend health status:', data);
+            console.log('Backend health check:', data);
+            
             if (data.status === 'healthy') {
-                showResult('Ready to detect glasses', 'alert-info');
+                showResult('Server connected! Upload a photo to begin.', 'alert-success');
+            } else {
+                showResult('Server status unknown. Try uploading anyway.', 'alert-warning');
             }
         } catch (error) {
-            console.error('Backend health check failed:', error);
-            showResult('Warning: Cannot connect to server', 'alert-warning');
+            console.error('Health check failed:', error);
+            showResult('Cannot connect to server. Please try again later.', 'alert-danger');
         }
     }
 
@@ -41,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
                 imagePreview.classList.remove('d-none');
-                showResult('Image ready for processing', 'alert-info');
+                showResult('Image selected - Click "Detect Glasses" to process', 'alert-info');
                 submitButton.disabled = false;
             };
             reader.readAsDataURL(file);
@@ -52,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     form.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Prevent form from submitting normally
+        e.preventDefault();
         
         const file = imageInput.files[0];
         if (!file) {
@@ -65,10 +69,17 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
         
         try {
-            showResult('Processing image...', 'alert-info');
+            showResult('Sending image to server...', 'alert-info');
 
             const formData = new FormData();
             formData.append('image', file);
+
+            console.log('Sending request to:', `${API_URL}/detect`);
+            console.log('File details:', {
+                name: file.name,
+                type: file.type,
+                size: `${(file.size / 1024).toFixed(2)} KB`
+            });
 
             const response = await fetch(`${API_URL}/detect`, {
                 method: 'POST',
@@ -77,9 +88,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
             
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+
             const responseText = await response.text();
             console.log('Raw response:', responseText);
+
+            if (!responseText) {
+                throw new Error('Empty response from server');
+            }
 
             try {
                 const data = JSON.parse(responseText);
@@ -87,17 +107,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (data.prediction) {
                     showResult(data.prediction, 'alert-success');
+                } else if (data.error) {
+                    showResult(`Error: ${data.error}`, 'alert-danger');
                 } else {
-                    showResult('No prediction received from server', 'alert-warning');
+                    showResult('Received invalid response from server', 'alert-warning');
                 }
             } catch (parseError) {
-                console.error('Error parsing response:', parseError);
-                showResult('Error: Invalid response from server', 'alert-danger');
+                console.error('JSON parse error:', parseError);
+                showResult(`Server returned invalid data: ${responseText.substring(0, 100)}...`, 'alert-danger');
             }
 
         } catch (error) {
-            console.error('Request error:', error);
-            showResult('Error connecting to server. Please try again.', 'alert-danger');
+            console.error('Request failed:', error);
+            showResult(`Connection error: ${error.message}`, 'alert-danger');
         } finally {
             // Reset button state
             submitButton.disabled = false;
@@ -109,5 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resultDiv.textContent = message;
         resultDiv.className = `alert ${className}`;
         resultDiv.classList.remove('d-none');
+        // Scroll to the result
+        resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }); 
