@@ -1,0 +1,33 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 800px;
+}
+
+#preview {
+    margin-top: 20px;
+}
+
+#imagePreview {
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alert {
+    margin-top: 20px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 10px;
+    font-weight: 500;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+} 
