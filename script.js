@@ -7,6 +7,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Backend API URL
     const API_URL = 'https://web-production-e7b0.up.railway.app';
 
+    // Check if backend is available
+    async function checkBackendHealth() {
+        try {
+            const response = await fetch(`${API_URL}/health`);
+            const data = await response.json();
+            console.log('Backend health status:', data);
+            showResult('Backend connected successfully', 'alert-success');
+        } catch (error) {
+            console.error('Backend health check failed:', error);
+            showResult('Warning: Backend connection failed', 'alert-warning');
+        }
+    }
+
+    // Check backend on page load
+    checkBackendHealth();
+
     // Preview image before upload
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -15,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
                 imagePreview.classList.remove('d-none');
+                showResult(`Image selected: ${file.name}`, 'alert-info');
             };
             reader.readAsDataURL(file);
         }
@@ -29,45 +46,58 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            showResult('Please select a valid image file (JPEG, PNG)', 'alert-danger');
+            return;
+        }
+
         try {
-            showResult('Processing...', 'alert-info');
+            showResult('Uploading and processing image...', 'alert-info');
 
             const formData = new FormData();
             formData.append('image', file);
 
             console.log('Sending request to:', `${API_URL}/detect`);
-            console.log('File being sent:', file.name, file.type, file.size);
+            console.log('File details:', {
+                name: file.name,
+                type: file.type,
+                size: `${(file.size / 1024).toFixed(2)} KB`
+            });
 
             const response = await fetch(`${API_URL}/detect`, {
                 method: 'POST',
                 body: formData,
-                // Add CORS headers
                 mode: 'cors',
                 headers: {
-                    'Accept': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
 
             console.log('Response status:', response.status);
-            console.log('Response headers:', [...response.headers.entries()]);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            
+            let responseText;
+            try {
+                responseText = await response.text();
+                console.log('Raw response:', responseText);
+                
+                // Try to parse as JSON
+                const data = JSON.parse(responseText);
+                console.log('Parsed response data:', data);
+                
+                if (data.prediction) {
+                    showResult(data.prediction, 'alert-success');
+                } else {
+                    showResult('No prediction received from server', 'alert-warning');
+                }
+            } catch (parseError) {
+                console.error('Error parsing response:', parseError);
+                showResult(`Server response error: ${responseText}`, 'alert-danger');
             }
 
-            const data = await response.json();
-            console.log('Response data:', data);
-
-            if (data.prediction) {
-                showResult(data.prediction, 'alert-success');
-            } else {
-                showResult('No prediction received from server', 'alert-warning');
-            }
         } catch (error) {
-            console.error('Detailed error:', error);
-            showResult(`Error: ${error.message}`, 'alert-danger');
+            console.error('Network or server error:', error);
+            showResult(`Error: ${error.message}. Check console for details.`, 'alert-danger');
         }
     });
 
