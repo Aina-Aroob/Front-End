@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultDiv = document.getElementById('result');
     const imagePreview = document.getElementById('imagePreview');
     
-    // Backend API URL - change this to your Railway deployment URL
-    const API_URL = 'https://your-railway-app-url.railway.app';
+    // Backend API URL
+    const API_URL = 'https://web-production-e7b0.up.railway.app';
 
     // Preview image before upload
     imageInput.addEventListener('change', (e) => {
