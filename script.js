@@ -30,25 +30,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            showResult('Processing...', 'alert-info');
+
             const formData = new FormData();
             formData.append('image', file);
 
-            showResult('Processing...', 'alert-info');
+            console.log('Sending request to:', `${API_URL}/detect`);
+            console.log('File being sent:', file.name, file.type, file.size);
 
             const response = await fetch(`${API_URL}/detect`, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                // Add CORS headers
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                }
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', [...response.headers.entries()]);
+
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const data = await response.json();
-            showResult(data.prediction, 'alert-success');
+            console.log('Response data:', data);
+
+            if (data.prediction) {
+                showResult(data.prediction, 'alert-success');
+            } else {
+                showResult('No prediction received from server', 'alert-warning');
+            }
         } catch (error) {
-            console.error('Error:', error);
-            showResult('Error processing image. Please try again.', 'alert-danger');
+            console.error('Detailed error:', error);
+            showResult(`Error: ${error.message}`, 'alert-danger');
         }
     });
 
