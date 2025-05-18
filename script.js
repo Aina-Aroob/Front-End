@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageInput = document.getElementById('image');
     const resultDiv = document.getElementById('result');
     const imagePreview = document.getElementById('imagePreview');
+    
+    // Backend API URL - change this to your Railway deployment URL
+    const API_URL = 'https://your-railway-app-url.railway.app';
 
     // Preview image before upload
     imageInput.addEventListener('change', (e) => {
@@ -32,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             showResult('Processing...', 'alert-info');
 
-            const response = await fetch('/detect', {
+            const response = await fetch(`${API_URL}/detect`, {
                 method: 'POST',
                 body: formData
             });
