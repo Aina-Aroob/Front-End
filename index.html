@@ -16,13 +16,15 @@
                 <form id="uploadForm" class="mb-4">
                     <div class="mb-3">
                         <label for="image" class="form-label">Upload Image</label>
-                        <input type="file" class="form-control" id="image" accept="image/*" required>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
                         <div class="form-text">Upload a clear face photo to detect glasses.</div>
                     </div>
                     <div id="preview" class="text-center mt-3 mb-3">
                         <img id="imagePreview" class="img-fluid d-none" alt="Preview">
                     </div>
-                    <button type="submit" class="btn btn-primary w-100" disabled>Detect Glasses</button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary w-100">
+                        Detect Glasses
+                    </button>
                 </form>
             </div>
         </div>

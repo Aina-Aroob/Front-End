@@ -3,32 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageInput = document.getElementById('image');
     const resultDiv = document.getElementById('result');
     const imagePreview = document.getElementById('imagePreview');
-    const submitButton = form.querySelector('button[type="submit"]');
-    
-    // Backend API URL - make sure there's no trailing slash
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Backend API URL
     const API_URL = 'https://web-production-e7b0.up.railway.app';
 
-    // Check if backend is available
-    async function checkBackendHealth() {
-        try {
-            showResult('Connecting to server...', 'alert-info');
-            const response = await fetch(`${API_URL}/health`);
-            const data = await response.json();
-            console.log('Backend health check:', data);
-            
-            if (data.status === 'healthy') {
-                showResult('Server connected! Upload a photo to begin.', 'alert-success');
-            } else {
-                showResult('Server status unknown. Try uploading anyway.', 'alert-warning');
-            }
-        } catch (error) {
-            console.error('Health check failed:', error);
-            showResult('Cannot connect to server. Please try again later.', 'alert-danger');
-        }
-    }
-
-    // Check backend on page load
-    checkBackendHealth();
+    // Initially disable the submit button
+    submitBtn.disabled = true;
 
     // Preview image before upload
     imageInput.addEventListener('change', (e) => {
@@ -38,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showResult('Please select a valid image file (JPEG, PNG)', 'alert-danger');
                 imageInput.value = '';
                 imagePreview.classList.add('d-none');
+                submitBtn.disabled = true;
                 return;
             }
 
@@ -45,93 +27,72 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
                 imagePreview.classList.remove('d-none');
-                showResult('Image selected - Click "Detect Glasses" to process', 'alert-info');
-                submitButton.disabled = false;
+                submitBtn.disabled = false;
+                showResult('Image ready - Click "Detect Glasses" to process', 'alert-info');
             };
             reader.readAsDataURL(file);
         } else {
             imagePreview.classList.add('d-none');
-            submitButton.disabled = true;
+            submitBtn.disabled = true;
+            showResult('Please select an image', 'alert-warning');
         }
     });
 
-    form.addEventListener('submit', async (e) => {
+    // Handle form submission
+    form.addEventListener('submit', handleSubmit);
+
+    async function handleSubmit(e) {
         e.preventDefault();
-        
+
         const file = imageInput.files[0];
         if (!file) {
             showResult('Please select an image first!', 'alert-danger');
             return;
         }
 
-        // Disable the submit button and show loading state
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
-        
-        try {
-            showResult('Sending image to server...', 'alert-info');
+        // Disable button and show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
 
+        try {
             const formData = new FormData();
             formData.append('image', file);
 
-            console.log('Sending request to:', `${API_URL}/detect`);
-            console.log('File details:', {
-                name: file.name,
-                type: file.type,
-                size: `${(file.size / 1024).toFixed(2)} KB`
-            });
+            showResult('Processing image...', 'alert-info');
 
             const response = await fetch(`${API_URL}/detect`, {
                 method: 'POST',
-                body: formData,
-                mode: 'cors'
+                body: formData
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-            
             if (!response.ok) {
-                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                throw new Error(`Server error: ${response.status}`);
             }
 
-            const responseText = await response.text();
-            console.log('Raw response:', responseText);
-
-            if (!responseText) {
-                throw new Error('Empty response from server');
-            }
-
-            try {
-                const data = JSON.parse(responseText);
-                console.log('Parsed response:', data);
-                
-                if (data.prediction) {
-                    showResult(data.prediction, 'alert-success');
-                } else if (data.error) {
-                    showResult(`Error: ${data.error}`, 'alert-danger');
-                } else {
-                    showResult('Received invalid response from server', 'alert-warning');
-                }
-            } catch (parseError) {
-                console.error('JSON parse error:', parseError);
-                showResult(`Server returned invalid data: ${responseText.substring(0, 100)}...`, 'alert-danger');
+            const data = await response.json();
+            
+            if (data.prediction) {
+                showResult(data.prediction, 'alert-success');
+            } else {
+                showResult('Could not determine if glasses are present', 'alert-warning');
             }
 
         } catch (error) {
-            console.error('Request failed:', error);
-            showResult(`Connection error: ${error.message}`, 'alert-danger');
+            console.error('Error:', error);
+            showResult('Error processing image. Please try again.', 'alert-danger');
         } finally {
             // Reset button state
-            submitButton.disabled = false;
-            submitButton.innerHTML = 'Detect Glasses';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Detect Glasses';
         }
-    });
+    }
 
     function showResult(message, className = 'alert-info') {
         resultDiv.textContent = message;
         resultDiv.className = `alert ${className}`;
         resultDiv.classList.remove('d-none');
-        // Scroll to the result
-        resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+
+    // Initial message
+    showResult('Please select an image to begin', 'alert-info');
 }); 
