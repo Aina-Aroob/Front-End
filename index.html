@@ -12,17 +12,18 @@
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <h2 class="text-center mb-4">Glasses Detection App</h2>
+                <div id="result" class="alert alert-info d-none" role="alert"></div>
                 <form id="uploadForm" class="mb-4">
                     <div class="mb-3">
                         <label for="image" class="form-label">Upload Image</label>
                         <input type="file" class="form-control" id="image" accept="image/*" required>
+                        <div class="form-text">Upload a clear face photo to detect glasses.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Detect Glasses</button>
+                    <div id="preview" class="text-center mt-3 mb-3">
+                        <img id="imagePreview" class="img-fluid d-none" alt="Preview">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" disabled>Detect Glasses</button>
                 </form>
-                <div id="result" class="alert alert-info d-none" role="alert"></div>
-                <div id="preview" class="text-center mt-3">
-                    <img id="imagePreview" class="img-fluid d-none" alt="Preview">
-                </div>
             </div>
         </div>
     </div>

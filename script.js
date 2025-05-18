@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageInput = document.getElementById('image');
     const resultDiv = document.getElementById('result');
     const imagePreview = document.getElementById('imagePreview');
+    const submitButton = form.querySelector('button[type="submit"]');
     
     // Backend API URL
     const API_URL = 'https://web-production-e7b0.up.railway.app';
@@ -13,10 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_URL}/health`);
             const data = await response.json();
             console.log('Backend health status:', data);
-            showResult('Backend connected successfully', 'alert-success');
+            if (data.status === 'healthy') {
+                showResult('Ready to detect glasses', 'alert-info');
+            }
         } catch (error) {
             console.error('Backend health check failed:', error);
-            showResult('Warning: Backend connection failed', 'alert-warning');
+            showResult('Warning: Cannot connect to server', 'alert-warning');
         }
     }
 
@@ -27,18 +30,29 @@ document.addEventListener('DOMContentLoaded', () => {
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                showResult('Please select a valid image file (JPEG, PNG)', 'alert-danger');
+                imageInput.value = '';
+                imagePreview.classList.add('d-none');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
                 imagePreview.classList.remove('d-none');
-                showResult(`Image selected: ${file.name}`, 'alert-info');
+                showResult('Image ready for processing', 'alert-info');
+                submitButton.disabled = false;
             };
             reader.readAsDataURL(file);
+        } else {
+            imagePreview.classList.add('d-none');
+            submitButton.disabled = true;
         }
     });
 
     form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Prevent form from submitting normally
         
         const file = imageInput.files[0];
         if (!file) {
@@ -46,44 +60,30 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            showResult('Please select a valid image file (JPEG, PNG)', 'alert-danger');
-            return;
-        }
-
+        // Disable the submit button and show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+        
         try {
-            showResult('Uploading and processing image...', 'alert-info');
+            showResult('Processing image...', 'alert-info');
 
             const formData = new FormData();
             formData.append('image', file);
 
-            console.log('Sending request to:', `${API_URL}/detect`);
-            console.log('File details:', {
-                name: file.name,
-                type: file.type,
-                size: `${(file.size / 1024).toFixed(2)} KB`
-            });
-
             const response = await fetch(`${API_URL}/detect`, {
                 method: 'POST',
                 body: formData,
-                mode: 'cors',
-                headers: {
-                    'Accept': 'application/json'
-                }
+                mode: 'cors'
             });
 
             console.log('Response status:', response.status);
             
-            let responseText;
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+
             try {
-                responseText = await response.text();
-                console.log('Raw response:', responseText);
-                
-                // Try to parse as JSON
                 const data = JSON.parse(responseText);
-                console.log('Parsed response data:', data);
+                console.log('Parsed response:', data);
                 
                 if (data.prediction) {
                     showResult(data.prediction, 'alert-success');
@@ -92,12 +92,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (parseError) {
                 console.error('Error parsing response:', parseError);
-                showResult(`Server response error: ${responseText}`, 'alert-danger');
+                showResult('Error: Invalid response from server', 'alert-danger');
             }
 
         } catch (error) {
-            console.error('Network or server error:', error);
-            showResult(`Error: ${error.message}. Check console for details.`, 'alert-danger');
+            console.error('Request error:', error);
+            showResult('Error connecting to server. Please try again.', 'alert-danger');
+        } finally {
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Detect Glasses';
         }
     });
 
